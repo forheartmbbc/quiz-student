@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>搶答系統 - 學生端</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f0f8ff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    .question {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    .option {
+      display: block;
+      width: 80%;
+      margin: 10px auto;
+      font-size: 24px;
+      padding: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+      border: none;
+    }
+    .red { background-color: #e74c3c; }
+    .green { background-color: #27ae60; }
+    .blue { background-color: #2980b9; }
+    .yellow { background-color: #f1c40f; color: black; }
+    input {
+      font-size: 24px;
+      padding: 10px;
+      width: 80%;
+      margin-bottom: 20px;
+    }
+    #status {
+      font-size: 24px;
+      margin-top: 20px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>地震搶答系統</h1>
+  <input type="text" id="name" placeholder="請輸入你的名字" required>
+  <div class="question" id="question">讀取中...</div>
+  <div id="options"></div>
+  <div id="status"></div>
+
+  <script>
+    const apiUrl = 'https://script.google.com/macros/s/AKfycbz1_qQzXiguVCVtG_cqCyF6Z1O0Gj9fdtdgGuNO0KMAA8BX5uh2dSA24_JIJ0PP1L5i/exec';
+
+    let selected = false;
+
+    function loadQuestion() {
+      fetch(apiUrl + '?action=getQuestion')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('question').textContent = data.question;
+          const optionsDiv = document.getElementById('options');
+          optionsDiv.innerHTML = '';
+          const colors = ['red', 'yellow', 'green', 'blue'];
+          data.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.textContent = opt;
+            btn.className = `option ${colors[i]}`;
+            btn.onclick = () => submitAnswer(i);
+            btn.disabled = selected;
+            optionsDiv.appendChild(btn);
+          });
+        });
+    }
+
+    function submitAnswer(choice) {
+      const name = document.getElementById('name').value.trim();
+      if (!name) {
+        alert("請先輸入你的名字！");
+        return;
+      }
+      if (selected) return;
+      selected = true;
+      document.querySelectorAll('.option').forEach(btn => btn.disabled = true);
+      fetch(apiUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'submitAnswer',
+          name,
+          answer: choice
+        })
+      }).then(res => res.json())
+        .then(result => {
+          document.getElementById('status').textContent =
+            result.correct ? "✅ 恭喜你答對了！" : "❌ 很可惜，答錯了～";
+        });
+    }
+
+    loadQuestion();
+    setInterval(loadQuestion, 5000); // 每 5 秒同步題目
+  </script>
+</body>
+</html>
